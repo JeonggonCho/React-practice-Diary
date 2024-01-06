@@ -250,4 +250,98 @@ const handleSubmit = () => {
 
 ## (2) React에서 DOM 조작하기 - useRef
 
-###
+### **1) 목표**
+
+- 리액트에서 DOM 조작하기
+  - 일기 저장 버튼 클릭 시, 작성자와 일기가 정상적으로 입력되었는지 확인
+  - 정상적인 입력 아니라면 focus하기
+
+<br>
+
+### **2) 정상적인 입력이 아닐 경우, alert 띄우기**
+
+- handleSubmit 수정하기
+- 조건문으로 작성자와 본문내용의 길이에 따라 alert 띄우기
+- alert 실행 후, 이후 코드를 실행하지 않도록 return 추가
+
+```jsx
+const handleSubmit = () => {
+  if (state.author.length < 1) {
+    alert("작성자는 최소 1글자 이상 입력해주세요");
+    return;
+  }
+
+  if (state.content.length < 5) {
+    alert("일기 본문은 최소 5글자 이상 입력해주세요");
+    return;
+  }
+        
+  alert("저장 성공");
+};
+```
+
+- 하지만, 입력이 정상이 아니더라도 `alert`를 띄우는 것은 `UX 경험적으로 좋지 않음`
+
+<br>
+
+### **3) 정상적인 입력이 아닐 경우, focus 주기**
+
+- `useRef` 사용
+
+```jsx
+// useRef import 해오기
+import {useRef, useState} from "react";
+
+// useRef 사용하여 DOM 요소 접근 가능한 기능 부여
+const authorInput = useRef();
+const contentInput = useRef();
+
+
+// 조건문에 따라 불만족 시, 해당 현재요소에 focus하기
+const handleSubmit = () => {
+  if (state.author.length < 1) {
+    authorInput.current.focus();
+    return;
+  }
+
+  if (state.content.length < 5) {
+    contentInput.current.focus();
+    return;
+  }
+
+  alert("저장 성공");
+};
+
+
+<div>
+  <input
+    // ref 속성으로 DOM 연결
+    ref={authorInput}
+    name="author"
+    value={state.author}
+    onChange={handleChangeState}
+  />
+</div>
+<div>
+  <textarea
+    // ref 속성으로 DOM 연결
+    ref={contentInput}
+    name="content"
+    value={state.content}
+    onChange={handleChangeState}
+  />
+</div>
+```
+
+- useRef()를 지정하면 해당 변수는 `mutableRefObject`가 됨
+- mutableRefObject : HTML DOM 요소에 접근할 수 있는 기능
+
+![리액트 DOM 조작](README_img/리액트_DOM_조작하기.gif)
+
+<리액트 DOM 조작 결과>
+
+
+---
+
+## (3) React에서 리스트 사용하기1 - 리스트 렌더링(조회)
+
