@@ -1,8 +1,15 @@
-# 감성 일기장
+# 일기장
+
+## - 목차
+- [학습내용](#학습내용)
+- [React에서 사용자 입력 처리 - useState](#1-react에서-사용자-입력-처리---usestate)
+- [React에서 DOM 조작하기 - useRef](#2-react에서-dom-조작하기---useref)
+- [React에서 리스트 사용하기1 - 리스트 렌더링(조회)](#3-react에서-리스트-사용하기1---리스트-렌더링조회)
+- [React에서 리스트 사용하기2 - 데이터 추가](#4-react에서-리스트-사용하기2---데이터-추가)
 
 ---
 
-## 학습
+## 학습내용
 
 - 사용자 입력 및 배열 리스트 처리하기
 - React Lifecycle과 API
@@ -344,4 +351,147 @@ const handleSubmit = () => {
 ---
 
 ## (3) React에서 리스트 사용하기1 - 리스트 렌더링(조회)
+
+### **1) 목표**
+
+- `DiaryList` 컴포넌트 만들기
+  - `배열`을 이용하여 list 렌더링 해보기
+  - 개별적인 컴포넌트 만들어보기
+
+<br>
+
+### **2) 더미데이터 만들고 리스트 컴포넌트에 props로 보내기**
+
+```jsx
+// App.js
+
+const dummyList = [
+  {
+    id: 1,
+    author: "조정곤",
+    content: "하이~1",
+    emotion: 5,
+    created_date: new Date().getTime(),
+  },
+  {
+    id: 2,
+    author: "김철수",
+    content: "하이~2",
+    emotion: 2,
+    created_date: new Date().getTime(),
+  },
+  {
+    id: 3,
+    author: "이영수",
+    content: "하이~3",
+    emotion: 3,
+    created_date: new Date().getTime(),
+  },
+];
+
+<div className="App">
+  <DiaryEditor />
+  <DiaryList diaryList={dummyList} />
+</div>
+```
+
+- `dummyList 배열`에 데이터(id, 작성자, 내용, 감정점수, 생성시간)를 `객체타입`으로 담아 만들기
+- `DiaryList` 컴포넌트에 diaryList 속성으로 dummyList 배열 props로 보내기
+
+```jsx
+// DiaryList.js
+
+const DiaryList = ({ diaryList }) => {
+  return (
+    <div className="DiaryList">
+      <h2>일기 리스트</h2>
+      <h4>{diaryList.length}개의 일기가 있습니다.</h4>
+      <div>
+        {diaryList.map((it, idx) => (
+          <div key={it.id}>
+            <div>작성자 : {it.author}</div>
+            <div>일기 : {it.content}</div>
+            <div>감정 : {it.emotion}</div>
+            <div>작성 시간(ms) : {it.created_date}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+DiaryList.defaultProps = {
+  diaryList: [],
+};
+
+export default DiaryList;
+```
+
+- DiaryList 컴포넌트에서 diaryList를 props로 받기
+- `map 메서드`를 사용하여 배열 생성
+- map 메서드의 콜백함수로 배열 순회하여 객체 데이터 각각의 <div> 태그를 생성하고 최상위 <div> 태그에 담기
+- 이 경우, 생성된 배열 간에 키가 지정되어있지 않아 콘솔 에러가 발생
+- 따라서 최상위 <div> 요소에 `key 속성`에 각각의 배열을 구분할 수 있는 `id`를 넣어 에러 해결
+  - 콜백함수의 `두 번째 인자인 인덱스(idx)`를 받아 id 대신 key 속성에 넣어 사용할 수 있음
+  - 하지만 추후 순서가 변경될 경우, 수정 및 삭제의 동작 시 문제가 발생할 수 있어 id가 객체에 있다면 id를 사용하는 것을 지향함
+- map 메서드 안의 요소는 계속 반복되는 요소로 독립적인 컴포넌트로 관리할 수 있음
+
+<br>
+
+### **3) 리스트의 아이템을 관리할 컴포넌트 생성**
+
+```jsx
+// DiaryList.js
+
+import DiaryItem from "./DiaryItem";
+
+const DiaryList = ({ diaryList }) => {
+  return (
+    <div className="DiaryList">
+      <h2>일기 리스트</h2>
+      <h4>{diaryList.length}개의 일기가 있습니다.</h4>
+      <div>
+        {diaryList.map((it, idx) => (
+          <DiaryItem key={it.id} {...it} />
+        ))}
+      </div>
+    </div>
+  );
+};
+```
+
+- DiaryItem 컴포넌트를 받아 콜백함수에서 사용
+- 동일하게 `key 속성`으로 `id 값`을 사용하고, 나머지 데이터를 `Spread 연산자(...)`를 사용하여 `props`로 보내기
+
+```jsx
+// DiaryItem.js
+
+const DiaryItem = ({ author, content, created_date, emotion, id }) => {
+  return (
+    <div className="DiaryItem">
+      <div className="info">
+        <span>
+          작성자 : {author} | 감정점수 : {emotion}
+        </span>
+        <br />
+        <span className="date">{new Date(created_date).toLocaleString()}</span>
+      </div>
+      <div className="content">{content}</div>
+    </div>
+  );
+};
+
+export default DiaryItem;
+```
+
+- `DiaryItem` 컴포넌트 생성
+- props로 받은 데이터를 요소에 담아 출력
+
+![리스트 렌더링](README_img/리스트_데이터_렌더링.png)
+
+<리스트 데이터 렌더링 예시 결과>
+
+---
+
+## (4) React에서 리스트 사용하기2 - 데이터 추가
 
