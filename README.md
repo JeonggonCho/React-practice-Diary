@@ -7,6 +7,8 @@
 -   [React에서 DOM 조작하기 - useRef](#2-react에서-dom-조작하기---useref)
 -   [React에서 리스트 사용하기1 - 리스트 렌더링(조회)](#3-react에서-리스트-사용하기1---리스트-렌더링조회)
 -   [React에서 리스트 사용하기2 - 데이터 추가](#4-react에서-리스트-사용하기2---데이터-추가)
+-   [React에서 리스트 사용하기3 - 데이터 삭제](#5-react에서-리스트-사용하기3---데이터-삭제)
+-   [React에서 리스트 사용하기4 - 데이터 수정](#6-react에서-리스트-사용하기4---데이터-수정)
 
 <br>
 <br>
@@ -626,7 +628,7 @@ const handleSubmit = () => {
 };
 ```
 
-- 제출 시(handleSubmit), onCreate()함수를 호출함
+- 제출(handleSubmit) 시, onCreate()함수를 호출함
 - 인자로 state의 author, content, emotion을 전달
 - 저장 후, 입력 칸 비우고, 감정 1로 초기화
 
@@ -635,3 +637,116 @@ const handleSubmit = () => {
 ![state끌어올리기 결과](README_img/state끌어올리기_데이터_렌더링.gif)
 
 <state를 활용한 리스트 데이터 렌더링 예시 결과>
+
+<br>
+<br>
+
+## 5. React에서 리스트 사용하기3 - 데이터 삭제
+
+### 5-1. 학습목표
+
+- 삭제버튼을 각 일기 리스트 목록마다 생성
+- 삭제버튼을 클릭할 경우, 확인 메시지가 전달되고 확인을 누르면 해당 일기 아이템이 삭제되고 리렌더링 됨
+
+<br>
+
+### 5-2. onDelete 함수 생성
+
+```jsx
+// App.js
+
+// onDelete 함수
+const onDelete = (targetId) => {
+    console.log(`${targetId}가 삭제되었습니다`);
+    const newDiaryList = data.filter((it) => it.id !== targetId);
+    setData(newDiaryList);
+};
+
+return (
+    <div className="App">
+        <DiaryEditor onCreate={onCreate} />
+        // DiaryList로 props로 onDelete 전달
+        <DiaryList onDelete={onDelete} diaryList={data} />
+    </div>
+);
+```
+
+- onDelete 함수는 삭제버튼과 함께 해당 일기 아이템의 id값을 targetId인자로 받음
+- 필터를 사용하여 data에서 id가 인자로 받은 targetId와 같지 않은 나머지 아이템들을 모음
+- 새롭게 생성된 일기 리스트들을 setData() 상태 함수에 넣어 상태 바꾸기
+
+<br>
+
+### 5-3. DiaryList로 전달된 onDelete 함수를 DiaryItem 컴포넌트로 전달
+
+```jsx
+// DiaryList.js
+
+const DiaryList = ({ onDelete, diaryList }) => {
+    return (
+        <div className="DiaryList">
+            <h2>일기 리스트</h2>
+            <h4>{diaryList.length}개의 일기가 있습니다.</h4>
+            <div>
+                {diaryList.map((it, idx) => (
+                    // DiaryItem으로 onDelete 전달
+                    <DiaryItem key={it.id} {...it} onDelete={onDelete} />
+                ))}
+            </div>
+        </div>
+    );
+};
+```
+
+- onDelete 함수를 DiaryItem 컴포넌트로 props로 전달
+
+<br>
+
+### 5-4. 삭제 시, onDelete 함수 호출하고 해당 아이템의 id값 전달
+
+```jsx
+// DiaryItem.js
+
+// onDelete 함수 전달 받음
+const DiaryItem = ({
+                       onDelete,
+                       author,
+                       content,
+                       created_date,
+                       emotion,
+                       id,
+                   }) => {
+    return (
+        <div className="DiaryItem">
+            // ...
+            <button
+                onClick={() => {
+                    console.log(id);
+                    if (window.confirm(`${id}번째 일기를 정말 삭제하시겠습니까?`)) {
+                        onDelete(id);
+                    }
+                }}
+            >
+                삭제하기
+            </button>
+        </div>
+    );
+};
+```
+
+- onClick의 콜백함수를 지정
+- `window.confirm()` : 확인 메시지 띄우기
+  - 확인 클릭(true)일 경우, `onDelete` 함수 호출하여 파라미터로 해당 일기 아이템의 id 전달
+  - 취소 클릭(false)일 경우, 아무 일도 발생하지 않음
+
+<br>
+
+![리스트 삭제 결과](README_img/리스트_데이터_삭제하기.gif)
+
+<리스트 데이터 삭제 예시 결과>
+
+<br>
+<br>
+
+## 6. React에서 리스트 사용하기4 - 데이터 수정
+
