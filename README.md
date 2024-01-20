@@ -750,3 +750,167 @@ const DiaryItem = ({
 
 ## 6. React에서 리스트 사용하기4 - 데이터 수정
 
+### 6-1. 수정하기 기능에서 필요한 것
+
+- 수정하기 버튼
+- 수정하기 버튼을 누르면 기존 내용이 수정폼으로 변환
+- 특정 글자 수를 충족 시, 수정 완료되고 그렇지 않을 경우, 수정폼에 포커스 되도록 하기
+
+<br>
+
+### 6-2. 수정하기 버튼 만들기
+
+```jsx
+// DiaryItem.js
+
+<button onClick={handleRemove}>삭제하기</button>
+<button onClick={toggleIsEdit}>수정하기</button>
+```
+
+- 기존 삭제하기 버튼과 함께 수정하기 버튼 만들기
+- 수정하기 버튼 클릭 시, toggleIsEdit 함수 실행
+
+<br>
+
+### 6-3. state와 toggleIsEdit
+
+```jsx
+// DiaryItem.js
+
+const [isEdit, setIsEdit] = useState(false);
+const toggleIsEdit = () => setIsEdit(!isEdit);
+```
+
+- `isEdit`이란 변수를 설정하고 state로 기본 값을 `false`로 지정
+- toggleIsEdit은 상태 함수 setIsEdit의 인자로 `!isEdit`을 두어 isEdit이 false면 true로, true면 false로 `반전`되도록 함(스위치)
+- true는 수정상태, false는 비 수정상태
+- 수정하기 버튼의 onClick에 toggleIsEdit 지정
+
+<br>
+
+### 6-4. isEdit의 상태에 따른 버튼과 일기내용 변환
+
+```jsx
+// DiaryItem.js
+
+const [localContent, setLocalContent] = useState(content);
+
+...
+
+<div className="content">
+    {isEdit ? (
+        <textarea
+            value={localContent}
+            onChange={(e) => {
+                setLocalContent(e.target.value);
+            }}
+        />
+    ) : (
+        <>{content}</>
+    )}
+</div>
+
+{isEdit ? (
+    <>
+        <button onClick={handleQuitEdit}>수정 취소</button>
+        <button onClick={handleEdit}>수정 완료</button>
+    </>
+) : (
+    <>
+        <button onClick={handleRemove}>삭제하기</button>
+        <button onClick={toggleIsEdit}>수정하기</button>
+    </>
+)}
+```
+
+- 삼항 연산자를 사용하여 isEdit이 true, 즉 수정상태이면, textarea 요소가 생김
+- 수정폼 textarea의 내용은 변수 localContent로 지정하고 state를 사용하여 `초기 값`을 기존에 작성되어있던 `일기 내용인 content`로 설정
+- 버튼의 경우에도 삼항 연산자를 사용하여 isEdit이 true, 즉 수정상태이면 `수정 취소`, `수정 완료` 버튼을 보여주고, false로 수정상태가 아니면 기존의 `삭제하기` 및 `수정하기` 버튼이 보이도록 함
+
+<br>
+
+### 6-5. 버튼의 onClick 설정
+
+```jsx
+// DiaryItem.js
+
+// textarea의 DOM 접근 할 수 있도록 localContentInput 생성
+const localContentInput = useRef();
+
+// 수정 완료 버튼 클릭 시, 실행되는 hadleEdit 함수
+const handleEdit = () => {
+    if (localContent.length < 5) {
+        localContentInput.current.focus();
+        return;
+    }
+    if (window.confirm(`${id}번째 일기를 수정하시겠습니까?`)) {
+        onEdit(id, localContent);
+        toggleIsEdit();
+    }
+};
+
+
+// 수정 취소 버튼 클릭 시, 실행되는 handleQuitEdit 함수
+const handleQuitEdit = () => {
+    setIsEdit(false);
+    setLocalContent(content);
+};
+
+...
+
+// 내용 수정 폼 textarea
+<textarea ref={localContentInput}... />
+
+// 수정 취소, 수정 완료 버튼
+<>
+    <button onClick={handleQuitEdit}>수정 취소</button>
+    <button onClick={handleEdit}>수정 완료</button>
+</>
+```
+
+- 먼저 수정 취소 버튼의 `handleQuitEdit`을 보면, `setIsEdit(false);`을 통해 수정하지 않음으로 변경
+- 만약, 수정 중이였다면 수정 취소를 누르고 다시 수정하기 버튼을 클릭할 경우, 앞선 수정 내역이 그대로 남아있기에 취소 시, 이를 `초기화`하기 위해 `setLocalContent(content);`으로 기존 일기내용 넣기
+- 수정 완료를 클릭하면 `handleEdit` 함수가 실행 됨
+- textarea에 `useRef()`인 `localContentInput` 지정하여 DOM 접근 할 수 있도록 하기
+- handleEdit 함수는 기존 일기내용의 규칙처럼 5글자 미만으로 작성된 경우, `focus()` 주기
+- 통과된 경우, 확인 창을 띄우고 `onEdit()` 함수에 id와 localContent를 보내 데이터 수정
+- toggleIsEdit() 함수로 다시 수정 활성화 상태 닫기
+
+<br>
+
+### 6-6. App 컴포넌트에서 onEdit 전달하기
+
+```jsx
+// App.js
+
+const onEdit = (targetId, newContent) => {
+    setData(
+        data.map((it) =>
+            it.id === targetId ? { ...it, content: newContent } : it,
+        ),
+    );
+};
+
+...
+
+<DiaryList onEdit={onEdit} onRemove={onRemove} diaryList={data} />
+```
+
+```jsx
+// DiaryList.js
+
+const DiaryList = ({ onEdit, onRemove, diaryList }) => {
+    ...
+    <DiaryItem key={it.id} {...it} onRemove={onRemove} onEdit={onEdit} />
+};
+```
+
+- onEdit 함수는 데이터의 `id`와 `수정된 내용`을 전달받음
+- data들을 `map`으로 순회하여 인자로 전달받은 id와 같은 데이터를 찾아 content만 수정된 newContent로 `덮어씌움`
+- App 컴포넌트에서 생성된 onEdit 함수를 DiaryList 컴포넌트로 전달하고 다시 DiaryItem 컴포넌트로 전달함
+
+<br>
+
+![리스트 수정 결과](README_img/리스트_데이터_수정하기.gif)
+
+<리스트 데이터 수정 예시 결과>
