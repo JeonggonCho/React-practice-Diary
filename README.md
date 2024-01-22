@@ -2,13 +2,13 @@
 
 ## 목차
 
--   [학습내용](#학습내용)
--   [React에서 사용자 입력 처리 - useState](#1-react에서-사용자-입력-처리---usestate)
--   [React에서 DOM 조작하기 - useRef](#2-react에서-dom-조작하기---useref)
--   [React에서 리스트 사용하기1 - 리스트 렌더링(조회)](#3-react에서-리스트-사용하기1---리스트-렌더링조회)
--   [React에서 리스트 사용하기2 - 데이터 추가](#4-react에서-리스트-사용하기2---데이터-추가)
--   [React에서 리스트 사용하기3 - 데이터 삭제](#5-react에서-리스트-사용하기3---데이터-삭제)
--   [React에서 리스트 사용하기4 - 데이터 수정](#6-react에서-리스트-사용하기4---데이터-수정)
+1.   [React에서 사용자 입력 처리 - useState](#1-react에서-사용자-입력-처리---usestate)
+2.   [React에서 DOM 조작하기 - useRef](#2-react에서-dom-조작하기---useref)
+3.   [React에서 리스트 사용하기1 - 리스트 렌더링(조회)](#3-react에서-리스트-사용하기1---리스트-렌더링조회)
+4.   [React에서 리스트 사용하기2 - 데이터 추가](#4-react에서-리스트-사용하기2---데이터-추가)
+5.   [React에서 리스트 사용하기3 - 데이터 삭제](#5-react에서-리스트-사용하기3---데이터-삭제)
+6.   [React에서 리스트 사용하기4 - 데이터 수정](#6-react에서-리스트-사용하기4---데이터-수정)
+7.   [React Lifecycle 제어하기 - useEffect](#7-react-lifecycle-제어하기---useeffect)
 
 <br>
 <br>
@@ -758,7 +758,9 @@ const DiaryItem = ({
 
 <br>
 
-### 6-2. 수정하기 버튼 만들기
+### 6-2. isEdit의 상태에 따른 버튼과 일기내용 변환
+
+### - 수정하기 버튼 만들기
 
 ```jsx
 // DiaryItem.js
@@ -772,7 +774,7 @@ const DiaryItem = ({
 
 <br>
 
-### 6-3. state와 toggleIsEdit
+### - state와 toggleIsEdit
 
 ```jsx
 // DiaryItem.js
@@ -788,7 +790,7 @@ const toggleIsEdit = () => setIsEdit(!isEdit);
 
 <br>
 
-### 6-4. isEdit의 상태에 따른 버튼과 일기내용 변환
+### - 삼항 연산자를 이용한 일기내용, 수정폼, 버튼 변환
 
 ```jsx
 // DiaryItem.js
@@ -829,7 +831,9 @@ const [localContent, setLocalContent] = useState(content);
 
 <br>
 
-### 6-5. 버튼의 onClick 설정
+### 6-3. 버튼의 onClick 설정 및 데이터 이벤트 함수 자식으로 전달
+
+### - onClick 설정
 
 ```jsx
 // DiaryItem.js
@@ -878,7 +882,7 @@ const handleQuitEdit = () => {
 
 <br>
 
-### 6-6. App 컴포넌트에서 onEdit 전달하기
+### - App 컴포넌트에서 onEdit 전달하기
 
 ```jsx
 // App.js
@@ -914,3 +918,166 @@ const DiaryList = ({ onEdit, onRemove, diaryList }) => {
 ![리스트 수정 결과](README_img/리스트_데이터_수정하기.gif)
 
 <리스트 데이터 수정 예시 결과>
+
+<br>
+<br>
+
+## 7. React Lifecycle 제어하기 - useEffect
+
+### 7-1. Lifecycle
+
+- 생애주기로 일반적으로 `시간의 흐름`에 따라 탄생부터 죽음까지 이르는 `단계적` 과정
+- React의 컴포넌트 역시 생명주기(Lifecycle)을 가짐
+- 
+<br>
+
+![리액트 라이프사이클](README_img/lifecycle.png)
+
+- React의 Lifecycle은 크게 3가지의 단계로 나뉨
+    - `탄생`(Mount) : 화면에 나타나는 것
+    - `변화`(Update) : 업데이트(리렌더)
+    - `죽음`(Unmount) : 화면에서 사라짐
+- 각각의 단계마다 `특정한 작업`을 수행하도록 할 수 있음
+
+<br>
+
+### - Lifecycle 각각의 단계에서 사용하는 메서드
+
+- 지금까지는 화살표 함수를 이용한 `함수형 컴포넌트`만 이용해왔음
+- 하지만, 이 메서드들은 `클래스형 컴포넌트`에서만 사용 가능 하다.
+- `ref`, `state`의 경우도 함수형 컴포넌트에서는 사용이 불가능하고 `클래스형 컴포넌트`에서만 사용이 가능하다.
+
+<br>
+
+1. Mount 단계 : ComponentDidMount()
+2. Update 단계 : ComponentDidUpdate()
+3. Unmount 단계 : ComponentWillUnmount()
+
+<br>
+
+### 7-2. React Hooks
+
+- 2019년 6월 정식 출시된 기능
+- 앞선 Lifecycle에서 사용하는 메서드, state, ref를 함수형 컴포넌트를 사용하는 React에서 `사용하기 어려움`이 있었음
+- 따라서 이러한 문제점을 해결하고자, `use` 키워드를 앞에 붙여 `클래스형 컴포넌트`가 사용하는 이 기능들을 `함수형 컴포넌트`에서 사용할 수 있도록 Hooking(낚음)한 것
+- ex) useState, useEffect, useRef, ...
+
+<br>
+
+### - 애초에 React에서 클래스형 컴포넌트를 사용하지 않은 이유는?
+
+- 클래스형 컴포넌트의 코드가 매우 길어질 수 있고 복잡해질 수 있음
+- 중복 코드, 가독성 문제 등 여러 문제점을 해결하기 위해서 함수형 컴포넌트를 사용
+
+<br>
+
+### 7-3. useEffect
+
+- 앞선 각 `Lifecycle의 단계에서 사용하는 메서드`들을 함수형 컴포넌트에서 사용할 수 있게 해줌
+- 2개의 파라미터인 `콜백함수`, `의존성 배열`을 받음
+
+```jsx
+// useEffect 사용
+
+import React, { useEffect } from "react";
+
+useEffect(() => {
+    // 콜백함수 작성
+}, []); // '[]'는 Dependency Array(의존성 배열) : 이 배열 내에 들어있는 값이 변화하면 콜백함수가 수행됨
+```
+
+<br>
+
+### - Mount 단계에서 작업수행
+
+```jsx
+// 새로 만든 Lifecycle.js
+
+// Mount 단계에서 작업수행
+
+import React, { useEffect, useState } from "react";
+
+const Lifecycle = () => {
+// Mount 단계에 실행됨 -> dependency array에 빈배열
+    useEffect(() => {
+        console.log("Mount!");
+    }, []);
+}
+```
+
+- dependency 배열에 아무 값도 넣지 않으면(`빈배열`) Mount 단계에서 콜백함수가 수행됨
+
+<br>
+
+### - Update 단계에서 작업수행
+
+```jsx
+// Lifecycle.js
+
+import React, { useEffect, useState } from "react";
+
+const Lifecycle = () => {
+    const [count, setCount] = useState(0);
+    const [text, setText] = useState("");
+
+    // Update 단계에 실행됨 -> dependency array 없애기: 어느 요소라도 업데이트 되면 콜백함수 수행
+    useEffect(() => {
+      console.log("Update!");
+    });
+    
+    // 특정 요소가 업데이트 되면 콜백함수 수행
+    // count의 state가 변하는 순간 콜백함수 수행
+    useEffect(() => {
+      console.log(`count is update : ${count}`);
+      if (count > 5) {
+        alert("count가 5를 넘었습니다. 따라서 1로 초기화 합니다.");
+        setCount(1);
+      }
+    }, [count]);
+    
+    // text의 state가 변하는 순간 콜백함수 수행
+    useEffect(() => {
+      console.log(`text is update : ${text}`);
+    }, [text]);
+}
+```
+
+- `dependency 배열을 자체를 없애면` 어느 요소라도 업데이트 되면 콜백함수 수행
+- `dependency 배열에 값을 넣으면`, 해당 변수 값이 업데이트 되면 콜백함수 수행
+
+<br>
+
+![update](README_img/useEffect_update.gif)
+
+<Update시 콘솔출력 예시>
+
+<br>
+
+### - Unmount 단계에서 작업수행
+
+```jsx
+// Lifecycle.js
+
+import React, { useEffect, useState } from "react";
+
+const UnmountTest = () => {
+    // Unmount 단계에서 수행되는 작업을 만들기 위해서는 콜백함수 안에서
+    // 함수를 리턴하게 하면, Unmount되는 경우, 리턴된 함수가 수행됨
+    useEffect(() => {
+        console.log("Mount!");
+        return () => {
+            // Unmount 경우, 수행
+            console.log("Unmount!");
+        };
+    }, []);
+    return <div>Unmount Testing Component</div>;
+};
+```
+
+- Unmount 단계에서 수행되는 작업을 만들기 위해서는 useEffect의 콜백함수에 `리턴 함수를 정의`하면 해당 함수가 Unmount 단계에서 수행됨
+
+<br>
+
+![mount, Unmount](README_img/useEffect_mount_unmount.gif)
+
+<Mount와 Unmount시 콘솔출력 예시>
