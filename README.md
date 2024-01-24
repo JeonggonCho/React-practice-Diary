@@ -14,6 +14,7 @@
 6.   [React에서 리스트 사용하기4 - 데이터 수정](#6-react에서-리스트-사용하기4---데이터-수정)
 7.   [React Lifecycle 제어하기 - useEffect](#7-react-lifecycle-제어하기---useeffect)
 8.   [React에서 API 호출하기](#8-react에서-api-호출하기)
+9.   [최적화1 연산 결과 재사용 - useMemo](#9-최적화1-연산-결과-재사용---usememo)
 
 <br>
 <br>
@@ -1150,3 +1151,128 @@ useEffect(() => {
 
 <br>
 <br>
+
+## 9. 최적화1 연산 결과 재사용 - useMemo
+
+### 9-1. 학습목표
+
+- 현재 일기 데이터를 분석하는 함수제작
+- 일기 데이터의 길이가 변화하지 않을 때, 함수가 값을 다시 계산하지 않도록 하기
+- Memoization 개념 이해하기
+
+<br>
+
+### 9-2. Memoization
+
+- 프로그래밍 기법 중 하나
+- 이미 계산해본 `연산 결과를 기억`해두고 동일한 계산을 수행할 경우, 연산을 `재수행하지 않고`, `기억해둔 데이터`를 바로 반환
+
+<br>
+
+### 9-3. App 컴포넌트에서 기분 좋은 일기, 기분 나쁜 일기 계산
+
+- 필요한 데이터 3가지
+  - 기분 나쁜 일기(1~2점) 개수
+  - 기분 좋은 일기(3~5점) 개수
+  - 기분 좋은 일기의 비율
+
+<br>
+
+### - 필요한 데이터 분석 함수 생성
+
+```javascript
+// App.js
+
+const getDiaryAnalysis = () => {
+    console.log("일기 분석 시작");
+
+    const goodCount = data.filter((it) => it.emotion >= 3).length;
+    const badCount = data.length - goodCount;
+    const goodRatio = (goodCount / data.length) * 100;
+    return { goodCount, badCount, goodRatio };
+};
+
+const { goodCount, badCount, goodRatio } = getDiaryAnalysis();
+```
+
+- getDiaryAnalysis 함수 생성하고, 함수가 호출될 때마다 콘솔에 "일기 분석 시작"을 출력한다.
+- goodCount는 data 배열에서 객체의 emotion 값이 3이상인 것만 필터로 모아 length로 개수를 지정
+- badCount는 전체 일기 개수 data.length에서 goodCount를 뺀 나머지 개수
+- goodRatio는 전체 일기 개수에서 좋은 일기 개수를 나누고 100을 곱한 비율
+- 최종적으로 getDiaryAnalysis 함수는 3개의 상수를 리턴함
+- 비구조화 할당을 통해 함수 호출 시, 각각의 상수를 사용할 수 있게 됨
+
+<br>
+
+### - 데이터 출력
+
+```javascript
+// App.js
+
+<div className="App">
+    ...
+    <div>전체 일기 : {data.length}</div>
+    <div>기분 좋은 일기 개수 : {goodCount}</div>
+    <div>기분 나쁜 일기 개수 : {badCount}</div>
+    <div>기분 좋은 일기 비율 : {goodRatio}</div>
+    ...
+</div>
+```
+
+- 각각의 데이터를 출력한다.
+- 콘솔을 보면 "일기 분석 시작"을 2번 출력하는데 이 이유는 처음에 data에 아무 것도 없는 상태에서 1번 호출되고, API로 데이터를 받아 리렌더 되어 2번째 호출일 발생하기에 2번 출력되는 것을 알 수 있음
+
+<br>
+
+### - 문제점
+
+- 일기의 `내용을 수정`하는 것은 현재 우리가 출력하는 `기분 좋은 일기 개수`, `기분 나쁜 일기 개수`, `기분 좋은 일기 비율`에 어떠한 영향도 미치지 않는다.
+- 그럼에도 불구하고 `내용을 수정`하면 `리렌더`가 발생하고 "일기 분석 시작"이 콘솔에 출력되며 `일기 분석 함수가 또 호출`된 것을 알 수 있다.
+- 현재는 함수 하나가 호출되지만, 일기의 개수가 많아지거나, 더 많은 함수가 리렌더 시, 호출된다면 프로그램의 사용성에 영향을 줄 수 있다.
+- 따라서 리렌더 될 때마다 함수를 호출하는 것이 아닌, `특정 값이 변화할 때만` 해당 함수를 수행하도록 할 수 있다.
+
+<br>
+
+### 9-4. useMemo
+
+- 위의 문제를 useMemo를 사용하여 해결할 수 있다.
+- useMemo는 `콜백함수`, `dependency 배열`을 인자로 받음, (useEffect와 유사)
+
+```javascript
+// App.js
+
+const getDiaryAnalysis = useMemo(() => {
+    console.log("일기 분석 시작");
+
+    const goodCount = data.filter((it) => it.emotion >= 3).length;
+    const badCount = data.length - goodCount;
+    const goodRatio = (goodCount / data.length) * 100;
+    return { goodCount, badCount, goodRatio };
+}, [data.length]);
+```
+
+- 콜백함수가 실행되고 해당 리턴 값을 계속 기억해둔다.
+- 그리고 dependency 배열에 담긴 값이 변화하지 않으면 리턴 값을 그대로 사용한다.
+- 하지만 dependency 배열에 담긴 값이 변화하면 새로 업데이트된 리턴 값을 다시 사용하게 된다.
+- 따라서 불필요한 연산을 막을 수 있다.
+
+<br>
+
+### - useMemo의 타입 (실수 주의)
+
+- useMemo를 사용할 경우, 콜백함수가 리턴하는 값을 받기 때문에 getDiaryAnalysis는 함수가 아닌 상수가 됨
+
+```javascript
+// App.js
+
+const { goodCount, badCount, goodRatio } = getDiaryAnalysis;
+```
+
+- 따라서 `getDiaryAnalysis();`와 같이 함수로 호출했었지만 useMemo를 사용하면 `getDiaryAnalysis`로 가져와야 함
+- 함수 호출로 가져올 경우, 에러 발생
+
+<br>
+
+![useMemo](README_img/useMemo.gif)
+
+<useMemo를 사용하여 불필요한 호출, 연산 막기 예시>
