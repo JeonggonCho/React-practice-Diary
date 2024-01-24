@@ -1,5 +1,9 @@
 # 일기장
 
+본 프로젝트는 ["한입 크기로 잘라 먹는 리액트 강의"](https://www.udemy.com/course/winterlood-react-basic/)의 "일기장 만들어 보기"를 클론한 프로젝트로 "리액트"의 기초 지식을 학습하는 것을 목표하였습니다.
+
+<br>
+
 ## 목차
 
 1.   [React에서 사용자 입력 처리 - useState](#1-react에서-사용자-입력-처리---usestate)
@@ -9,6 +13,7 @@
 5.   [React에서 리스트 사용하기3 - 데이터 삭제](#5-react에서-리스트-사용하기3---데이터-삭제)
 6.   [React에서 리스트 사용하기4 - 데이터 수정](#6-react에서-리스트-사용하기4---데이터-수정)
 7.   [React Lifecycle 제어하기 - useEffect](#7-react-lifecycle-제어하기---useeffect)
+8.   [React에서 API 호출하기](#8-react에서-api-호출하기)
 
 <br>
 <br>
@@ -1081,3 +1086,67 @@ const UnmountTest = () => {
 ![mount, Unmount](README_img/useEffect_mount_unmount.gif)
 
 <Mount와 Unmount시 콘솔출력 예시>
+
+<br>
+<br>
+
+## 8. React에서 API 호출하기
+
+### 8-1. 학습목표
+
+- useEffect를 사용하여 Mount 시점에 API를 호출하고 해당 API 결과 값을 일기 데이터의 초기 값으로 이용하기
+
+<br>
+
+### 8-2. fetch로 API 받아오기
+
+```javascript
+// App.js
+
+const getData = async () => {
+    const res = await fetch(
+        "https://jsonplaceholder.typicode.com/comments",
+    ).then((res) => res.json());
+    const initData = res.slice(0, 20).map((it) => {
+        return {
+            author: it.email,
+            content: it.body,
+            emotion: Math.floor(Math.random() * 5) + 1,
+            created_date: new Date().getTime(),
+            id: dataId.current++,
+        };
+    });
+
+    setData(initData);
+};
+```
+
+- jsonplaceholder(더미 json을 응답하는 API)를 통해 fetch로 API 받기
+- .then()을 사용하여 resolve되면, 해당 응답 데이터를 가져옴
+- 하지만 해당 데이터는 헤더만 있기에 `.json()`로 사용가능한 `Promise 상태`로 변환
+- 이중 20개를 slice하고, map을 통해 각각의 객체를 담은 배열을 리턴한다.
+- 이 배열을 `setData`에 담아 data를 업데이트한다.
+
+<br>
+
+### 8-3. useEffect로 Mount시 데이터 호출
+
+```javascript
+// App.js
+
+useEffect(() => {
+    getData();
+}, []);
+```
+
+- useEffect를 사용하고 dependency 배열을 `빈 배열`로 설정하여 `Mount 단계`에서 해당 블록을 수행
+- 앞선 API를 호출하는 getData() 함수를 호출시킨다.
+
+<br>
+
+![API 호출](README_img/API사용.gif)
+
+<화면 렌더링 시, API를 통해 가져온 데이터를 사용>
+
+<br>
+<br>
