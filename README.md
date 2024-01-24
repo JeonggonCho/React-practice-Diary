@@ -15,6 +15,7 @@
 7.   [React Lifecycle 제어하기 - useEffect](#7-react-lifecycle-제어하기---useeffect)
 8.   [React에서 API 호출하기](#8-react에서-api-호출하기)
 9.   [최적화1 연산 결과 재사용 - useMemo](#9-최적화1-연산-결과-재사용---usememo)
+10.  [최적화2 컴포넌트 재사용 - React.memo](#10-최적화2-컴포넌트-재사용---reactmemo)
 
 <br>
 <br>
@@ -1276,3 +1277,297 @@ const { goodCount, badCount, goodRatio } = getDiaryAnalysis;
 ![useMemo](README_img/useMemo.gif)
 
 <useMemo를 사용하여 불필요한 호출, 연산 막기 예시>
+
+<br>
+<br>
+
+## 10. 최적화2 컴포넌트 재사용 - React.memo
+
+### 10-1. 불필요한 리렌더
+
+- count와 text라는 상태를 가진 App에서 count 값이 변화하면 어떻게 될까?
+
+![불필요한 리렌더](README_img/React_memo_background.png)
+
+- `state가 변화`하면 해당 컴포넌트와 자식 컴포넌트들은 `모두 리렌더가 발생`
+- 불필요한 리렌더를 발생시키기에 컴포넌트의 양이 많을 경우, `성능 비효율`이 발생할 수 있다.
+
+<br>
+
+### 10-2. 해결방안
+
+- 자식 컴포넌트에 `조건을 지정`한다.
+- 해당 조건이 `충족`될 경우에만 `렌더링을 수행`하도록 함
+
+![해결방안](README_img/React_memo_solution.png)
+
+<br>
+
+### 10-3. React.memo
+
+- 함수형 컴포넌트에서 `동일한 props`을 `부모 컴포넌트`로부터 받아서 `동일한 렌더링`이 발생할 경우, 다시 렌더링하지 않고 마지막으로 렌더링된 결과를 재사용하는 방법
+- props에 의해서만 렌더링을 재사용하는 것이며, state등의 변화 시에는 리렌더링 발생함
+
+<br>
+
+### - React.memo 테스트
+
+- 부모 컴포넌트인 OptimizeTest를 생성
+- `count`와 `text`의 두 개의 상태를 생성
+- 자식 컴포넌트인 CountView와 TextView에 각각 props 전달
+
+```javascript
+// OptimizeTest.js
+
+const OptimizeTest = () => {
+    const [count, setCount] = useState(1);
+    const [text, setText] = useState("");
+
+    return (
+        <div style={{ padding: 50 }}>
+            <div>
+                <h2>count</h2>
+                <CountView count={count} />
+                <button onClick={() => setCount(count + 1)}>+</button>
+            </div>
+            <div>
+                <h2>text</h2>
+                <TextView text={text} />
+                <input
+                    value={text}
+                    onChange={(e) => {
+                        setText(e.target.value);
+                    }}
+                />
+            </div>
+        </div>
+    );
+};
+```
+
+<br>
+
+<React.memo 사용 전>
+
+```javascript
+// Optimize.js
+
+import { useState, useEffect } from "react";
+
+const TextView = ({ text }) => {
+  useEffect(() => {
+    console.log(`Update :: text : ${text}`);
+  });
+  return <div>{text}</div>;
+};
+
+const CountView = ({ count }) => {
+  useEffect(() => {
+    console.log(`Update :: count : ${count}`);
+  });
+  return <div>{count}</div>;
+};
+```
+
+- `CountView`와 `TextView` 두 개의 자식 컴포넌트를 생성
+- 각각 prop으로 count와 text를 받는다.
+- useEffect를 사용하고 dependency 배열을 받지 않게하여 어떤 요소라도 Update(리렌더)되면 콘솔을 출력하도록 설정
+
+<br>
+
+![React.memo 적용 전](README_img/React_memo_non.png)
+
+<자식 컴포넌트 동시에 리렌더되어 콘솔 출력>
+
+<br>
+
+<React.memo 사용 후>
+
+```javascript
+// Optimize.js
+
+import React, { useState, useEffect } from "react";
+
+const TextView = React.memo(({ text }) => {
+  useEffect(() => {
+    console.log(`Update :: text : ${text}`);
+  });
+  return <div>{text}</div>;
+});
+
+const CountView = React.memo(({ count }) => {
+  useEffect(() => {
+    console.log(`Update :: count : ${count}`);
+  });
+  return <div>{count}</div>;
+});
+```
+
+- React를 import하기
+- props를 받는 자식의 함수형 컴포넌트 전체를 `React.memo()`로 감싸기
+- 이렇게 하게 되면 props의 값이 바뀌는 경우에만 해당 자식 컴포넌트가 리렌더하게 된다.
+
+<br>
+
+![React.memo 적용 후](README_img/React_memo_using.png)
+
+<count 값만 변화하여 CountView만 리렌더되어 콘솔 출력>
+
+<br>
+
+### - props로 객체를 받는 경우 : 문제점
+
+```javascript
+// OptimizeTest.js
+
+const OptimizeTest = () => {
+    const [count, setCount] = useState(1);
+    const [obj, setObj] = useState({
+        count: 1,
+    });
+
+    return (
+        <div style={{ padding: 50 }}>
+            <div>
+                <h2>Counter A</h2>
+                <CounterA count={count} />
+                <button
+                    onClick={() => {
+                        setCount(count);
+                    }}
+                >
+                    A button
+                </button>
+            </div>
+            <div>
+                <h2>Counter B</h2>
+                <CounterB obj={obj} />
+                <button
+                    onClick={() => {
+                        setObj({ count: obj.count });
+                    }}
+                >
+                    B button
+                </button>
+            </div>
+        </div>
+    );
+};
+```
+
+- state로 count, obj 데이터 설정
+- `setCount(count)`, `setObj({ count: obj.count })`로 기존 데이터와 같은 값을 state로 전달
+
+<br>
+
+```javascript
+//OptimizeTest.js
+
+import React, { useState, useEffect } from "react";
+
+const CounterA = React.memo(({ count }) => {
+  useEffect(() => {
+    console.log(`CounterA Update - count : ${count}`);
+  });
+  return <div>{count}</div>;
+});
+
+const CounterB = React.memo(({ obj }) => {
+  useEffect(() => {
+    console.log(`CounterB Update - count : ${obj.count}`);
+  });
+  return <div>{obj.count}</div>;
+});
+```
+
+- useMemo를 사용하여 부모 컴포넌트 OptimizeTest로부터 받은 props인 count와 obj가 변경되면 useEffect에 의해서 콘솔에 업데이트 결과가 출력되도록 설정하였다.
+- CounterA 컴포넌트의 경우, `count` 값이 `setCount(count)`에 의해 동일한 값을 보내기에 `리렌더되지 않음`
+- 반면 CounterB 컴포넌트의 경우, `obj` 값이 `setObj({ count: obj.count })`로 값의 변화가 없지만 `리렌더가 발생`한다.
+
+<br>
+
+<객체를 비교하는 방법>
+
+```javascript
+const a = {count: 1};
+const b = {count: 1};
+```
+
+- 위의 경우, `a === b`는 true일까?
+  - 정답은 false
+- 객체를 비교하는 경우, 객체의 `주소(해시)`를 비교하게 되는데 이 주소가 다르기에 다른 객체로 인식하게 된다. (`얕은 비교`)
+- 따라서 동일한 props를 받은 것같지만 다른 객체로 판단하기에 React.memo에서 리렌더링이 발생한다.
+
+<br>
+
+```javascript
+const a = {count: 1};
+const b = a;
+```
+
+- 이 경우는 b에서 a 자체를 참조하여 같은 객체 주소를 가리키기에 `a === b`가 `true`이다.
+
+<br>
+
+### - props로 객체를 받는 경우 : 해결 - areEqual() 함수
+
+```javascript
+// OptimizeTest.js
+
+const CounterB = ({ obj }) => {
+    useEffect(() => {
+        console.log(`CounterB Update - count : ${obj.count}`);
+    });
+    return <div>{obj.count}</div>;
+};
+```
+
+- 기존 CounterB 컴포넌트에서 React.memo 제거
+
+<br>
+
+```javascript
+// OptimizeTest.js
+
+const areEqual = (prevProps, nextProps) => {
+    if (prevProps.obj.count === nextProps.obj.count) {
+        return true; // 이전 props와 현재 props가 같다 -> 리렌더 발생 안 함
+    }
+    return false; // 이전 props와 현재 props가 다르다 -> 리렌더 발생
+};
+
+// -------------------------------------------------
+
+// 축약된 코드
+
+const areEqual = (prevProps, nextProps) => {
+    return prevProps.obj.count === nextProps.obj.count;
+};
+```
+
+- 두 개의 객체 인자를 받아 값이 같은지 비교하여 `같으면 true`, `다르면 false`를 리턴하는 함수 `areEqual`을 생성
+
+<br>
+
+```javascript
+// OptimizeTest.js
+
+const MemoizedCounterB = React.memo(CounterB, areEqual);
+
+...
+<div>
+    <h2>Counter B</h2>
+    <MemoizedCounterB obj={obj} />
+    <button
+        onClick={() => {
+            setObj({ count: obj.count });
+        }}
+    >
+        B button
+    </button>
+</div>
+...
+```
+
+- React.memo에 기존의 컴포넌트 함수 `CounterB`와 값을 비교하는 함수 `areEqual`을 인자로 주면 새로운 함수형 컴포넌트를 생성함
+- 이 함수를 부모 컴포넌트에 사용하면 props로 받은 객체의 얕은 비교를 하지않고, 두 번째 인자의 areEqual이 리턴하는 true/false에 따라 리렌더를 결정하게 된다.
