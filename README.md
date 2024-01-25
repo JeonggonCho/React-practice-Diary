@@ -16,6 +16,7 @@
 8.   [React에서 API 호출하기](#8-react에서-api-호출하기)
 9.   [최적화1 연산 결과 재사용 - useMemo](#9-최적화1-연산-결과-재사용---usememo)
 10.  [최적화2 컴포넌트 재사용 - React.memo](#10-최적화2-컴포넌트-재사용---reactmemo)
+11.  [최적화3 컴포넌트 & 함수 재사용 - useCallback](#11-최적화3-컴포넌트--함수-재사용---usecallback)
 
 <br>
 <br>
@@ -1571,3 +1572,119 @@ const MemoizedCounterB = React.memo(CounterB, areEqual);
 
 - React.memo에 기존의 컴포넌트 함수 `CounterB`와 값을 비교하는 함수 `areEqual`을 인자로 주면 새로운 함수형 컴포넌트를 생성함
 - 이 함수를 부모 컴포넌트에 사용하면 props로 받은 객체의 얕은 비교를 하지않고, 두 번째 인자의 areEqual이 리턴하는 true/false에 따라 리렌더를 결정하게 된다.
+
+<br>
+<br>
+
+## 11. 최적화3 컴포넌트 & 함수 재사용 - useCallback
+
+### 11-1. 최적화할 요소 찾기
+
+### - React Developer Tools 활용
+
+- 크롬 브라우저의 확장 앱으로 메타(Meta)에서 개발함
+- 브라우저 상의 페이지가 React 기반으로 제작되었는지 확인할 수 있음
+- 옵션에서 `Highlight updates when components render`를 활성화하면 현재 `리렌더`링되는 컴포넌트를 `하이라이트` 해줌
+
+<br>
+
+![리액트 개발 도구 하이라이트 기능](README_img/React_highlight.gif)
+
+<일기 내용이 업데이트될 때마다 DiaryEditor.js 영역이 노란색으로 하이라이트됨>
+
+<br>
+
+### - 리렌더링이 일어나는 경우
+
+- 본인이 가진 state가 변경될 경우
+- 부모 컴포넌트가 리렌더링되는 경우
+- 자신이 받은 props가 변경되는 경우
+
+<br>
+
+### 11-2. useCallback
+
+- ReactHooks 중 하나
+- useCallback은 useMemo와 동일하게 구성되나 `useMemo`는 동일한 `연산의 결과 값`을 리턴하는 반면, `useCallback`은 `콜백함수`를 리턴한다.
+- dependency 배열의 값이 변화하지 않으면 동일한 콜백함수를 사용하는 것을 도움
+
+```javascript
+// useCallback 기본구성(콜백함수, dependency 배열)
+
+const memoizationCallback = useCallback(
+    () => {
+        doSometing(a, b);
+    }, [a, b]
+);
+```
+
+<br>
+
+### 11-3. useCallback 사용
+
+- DiaryList에서 변화가 있을 경우, data 변수가 업데이트되고 data를 state로 가지는 App.js(부모 컴포넌트)는 리렌더링 된다.
+- 부모 컴포넌트에서 리렌더링이 일어나기에 자식 컴포넌트인 `DiaryList`와 `DiaryEditor` 모두 리렌더링 된다.
+- 하지만 data가 변화하더라도 `DiaryEditor`는 `리렌더링 될 필요가 없다`.
+- DiaryEditor는 부모 App 컴포넌트로부터 `onCreate` 함수를 props로 받고 있다.
+- 따라서 동일한 onCreate 함수를 props로 받아 리렌더링이 일어나지 않도록 `onCreate` 함수에 `useCallback`을 사용하고 `DiaryEditor`는 동일한 props를 받으면 리렌더링되지 않도록 `React.memo`를 사용한다. 
+
+```javascript
+// DiaryEditor.js
+
+export default React.memo(DiaryEditor);
+```
+
+```javascript
+// App.js
+
+const onCreate = useCallback((author, content, emotion) => {
+    const created_date = new Date().getTime();
+    const newItem = {
+        author,
+        content,
+        emotion,
+        created_date,
+        id: dataId.current,
+    };
+    dataId.current += 1;
+    setData([newItem, ...data]);
+}, []);
+```
+
+<br>
+
+### 11-4. 최적화의 딜레마
+
+- useCallback을 적용한 현재 DiaryEditor에서 일기를 작성하면, onCreate가 수행되는데 useCallback의 `dependency`에 `빈배열`을 담고 있기 때문에 최초의 mount될 때의 `data(빈배열)`만 기억하여 `작성된 일기를 빈배열에 계속 넣게 된다`.
+- 밑빠진 독에 물붓기와 같은 현상 발생
+- `dependency 배열`에 `data`를 넣게 되면, data를 `참조`받아 기존 일기에 새로 작성된 일기를 추가하게 되지만 `data가 변화`할 때마다 `DiaryEditor가 리렌더`되어 useCallback을 사용한 `이점이 사라진다`.
+
+<br>
+
+### 11-5. 함수형 업데이트
+
+- setState 함수에 함수를 전달하는 것
+
+```javascript
+// App.js
+
+const onCreate = useCallback((author, content, emotion) => {
+    const created_date = new Date().getTime();
+    const newItem = {
+        author,
+        content,
+        emotion,
+        created_date,
+        id: dataId.current,
+    };
+    dataId.current += 1;
+    setData((data) => [newItem, ...data]);
+}, []);
+```
+
+- `setData((data) => [newItem, ...data])`를 보면 setData 함수 내에 함수를 사용하고 data를 인자로 받아 업데이트된 배열을 리턴한다.
+- 이렇게 하면 dependency 배열은 data를 가지지 않아 data가 수정되더라도 onCreate는 동일한 콜백함수를 리턴하여 리렌더가 발생하지 않음
+- 대신 setData에서 콜백함수 `인자`로 `data`를 참조하기에 data가 `빈배열로 초기화되지 않는다`.
+
+<br>
+<br>
