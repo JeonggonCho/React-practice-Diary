@@ -19,6 +19,7 @@
 11.  [최적화3 컴포넌트 & 함수 재사용 - useCallback](#11-최적화3-컴포넌트--함수-재사용---usecallback)
 12.  [최적화4 - React.memo + useCallback](#12-최적화4---reactmemo--usecallback)
 13.  [복잡한 상태 관리 로직 분리하기 - useReducer](#13-복잡한-상태-관리-로직-분리하기---usereducer)
+14.  [컴포넌트 트리에 데이터 공급하기 - Context](#14-컴포넌트-트리에-데이터-공급하기---context)
 
 <br>
 <br>
@@ -1937,3 +1938,183 @@ const onEdit = useCallback((targetId, newContent) => {
 
 <br>
 <br>
+
+## 14. 컴포넌트 트리에 데이터 공급하기 - Context
+
+### 14-1. 전달되는 props와 컴포넌트에서 활용되는 props
+
+![props 구분](README_img/React_Context.png)
+
+- App 컴포넌트에서 생성된 `onEdit` 함수와 `onRemove` 함수는 `DiaryList` 컴포넌트에는 `전달`만 이루어지고 `DiaryItem` 컴포넌트에서 실질적으로 `사용`됨 (비효율적)
+- 전달되는 props가 많아지게 되면 중간에 이름을 수정하는 등의 작업을 할 때, 모두 수정해주는 반복 작업을 해야함
+- 이를 `Props 드릴링`이라고 함
+
+<br>
+
+### 14-2. Provider, Context
+
+<Provider : 공급자 컴포넌트>
+
+![Provider](README_img/React_Provider.png)
+
+- `Provider 컴포넌트`에게 App 컴포넌트의 `모든 데이터`를 전달받음
+- 모든 컴포넌트가 Provider로부터 필요한 props를 `직접 전달` 받음
+- 이처럼 모든 컴포넌트가 Provider의 자식 컴포넌트가 되어 props를 직접 전달받을 수 있는 영역을 `Context`, 문맥이라고 함
+- 같은 Context에 속해있지 않으면 prop을 provider로부터 직접 전달 받는 것이 불가능
+
+<br>
+
+### - Context 생성
+
+```jsx
+const MyContext = React.createContext(defaultValue);
+```
+
+- Context를 쉽게 작성하도록 React의 `Context API`를 활용할 수 있음
+- `createContext` : Context 생성 함수
+
+<br>
+
+### - Context Provider를 통한 데이터 공급
+
+```jsx
+<MyContext.Provider value={전역으로 전달하고자하는 값}>
+    {/*이 context안에 위치할 자식 컴포넌트들*/}
+</MyContext.Provider>
+```
+
+- `Childern Props` : 컴포넌트를 컴포넌트로 감싸 컴포넌트를 props로 전달
+- 자식 컴포넌트 수의 제한은 없음
+
+<br>
+
+### 14-3. 코드에 적용
+
+### - data를 관리할 Context 생성
+
+```jsx
+// App.js
+
+export const DiaryStateContext = React.createContext();
+```
+
+- 다른 컴포넌트에서 import할 수 있도록 `export` 해주어야 함
+
+<br>
+
+### - data Context의 Provider 컴포넌트로 자식 컴포넌트 감싸기
+
+```jsx
+// App.js
+
+<DiaryStateContext.Provider value={data}>
+    <div className="App">
+        <DiaryEditor onCreate={onCreate} />
+        <div>전체 일기 : {data.length}</div>
+        <div>기분 좋은 일기 개수 : {goodCount}</div>
+        <div>기분 나쁜 일기 개수 : {badCount}</div>
+        <div>기분 좋은 일기 비율 : {goodRatio}</div>
+        <DiaryList onEdit={onEdit} onRemove={onRmove} />
+    </div>
+</DiaryStateContext.Provider>
+```
+
+- DiaryStateContext의 Provider 컴포넌트에 value를 data로 지정
+
+<br>
+
+### - DiaryList 컴포넌트에서 해당 props 받기
+
+```jsx
+// DiaryList.js
+
+const DiaryList = () => {
+    const diaryList = useContext(DiaryStateContext);
+};
+```
+
+- 기존의 props는 제거하고 React Hooks의 하나인 `useContext`를 통해 Context에서 diaryList 데이터를 가져옴
+
+<br>
+
+### - 상태 변화 함수도 관리할 Context 생성 
+
+```jsx
+export const DiaryDispatchContext = React.createContext();
+```
+
+- `data`와 `상태 변화 함수`를 `하나의 Context`에서 관리할 경우, 기존의 React.memo와 useCallback으로 리렌더를 방지한 `최적화가 풀려버리고` data가 업데이트 될때마다 다시 `리렌더가 발생함`
+- 따라서 다른 Context에서 관리해야함
+
+<br>
+
+### - 상태 변화 함수들 하나의 변수에 담기
+
+```jsx
+// App.js
+
+const memoizedDispatches = useMemo(() => {
+    return { onCreate, onRemove, onEdit };
+}, []);
+
+// ----------------------------------------------
+
+// 이렇게 묶으면 안 됨
+const memoizedDispatches = { onCreate, onRemove, onEdit };
+```
+
+- 단순 객체로 묶어서 Context의 value로 전달하면 App 컴포넌트가 업데이트될 때, 상태 변화 함수들도 재생성됨
+- 따라서 함수의 연산 결과 값을 기억하는 useMemo를 사용해야 함
+
+<br>
+
+### - 상태 변화 함수 Provider 컴포넌트 적용
+
+```jsx
+// App.js
+
+<DiaryStateContext.Provider value={data}>
+    <DiaryDispatchContext.Provider value={memoizedDispatches}>
+        <div className="App">
+            <DiaryEditor />
+            <div>전체 일기 : {data.length}</div>
+            <div>기분 좋은 일기 개수 : {goodCount}</div>
+            <div>기분 나쁜 일기 개수 : {badCount}</div>
+            <div>기분 좋은 일기 비율 : {goodRatio}</div>
+            <DiaryList />
+        </div>
+    </DiaryDispatchContext.Provider>
+</DiaryStateContext.Provider>
+```
+
+- 해당 Context의 Provider 컴포넌트를 중첩하여 props를 전달
+- value로 앞서 생성한 `memoizedDispatches`를 지정
+- `onCreate={onCreate}`와 같은 상태 변화 함수 props들 제거
+
+<br>
+
+### - Provider에서 props 받기
+
+```jsx
+// DiaryEditor.js
+const DiaryEditor = () => {
+    const { onCreate } = useContext(DiaryDispatchContext);
+};
+
+```
+
+- 기존 props 삭제
+- useContext로 DiaryDispatchContext에서 onCreate 가져오기
+
+<br>
+
+```jsx
+// DiaryItem.js
+
+const DiaryItem = ({ id, author, content, emotion, created_date }) => {
+    const {onEdit, onRemove} = useContext(DiaryDispatchContext);
+}
+```
+
+- 기존 props에서 상태 변화 함수 props 삭제
+- useContext로 DiaryDispatchesContext에서 onEdit, onRemove 가져오기

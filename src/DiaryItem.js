@@ -1,17 +1,8 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useContext, useEffect, useRef, useState } from "react";
+import { DiaryDispatchContext } from "./App";
 
-const DiaryItem = ({
-  onEdit,
-  onRemove,
-  author,
-  content,
-  created_date,
-  emotion,
-  id,
-}) => {
-  useEffect(() => {
-    console.log(`${id}번째 아이템 렌더!`);
-  }, []);
+const DiaryItem = ({ id, author, content, emotion, created_date }) => {
+  const { onEdit, onRemove } = useContext(DiaryDispatchContext);
 
   const [isEdit, setIsEdit] = useState(false);
   const toggleIsEdit = () => setIsEdit(!isEdit); // 반전연산으로 Toggle역할 수행
