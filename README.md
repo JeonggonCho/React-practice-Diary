@@ -17,6 +17,7 @@
 9.   [최적화1 연산 결과 재사용 - useMemo](#9-최적화1-연산-결과-재사용---usememo)
 10.  [최적화2 컴포넌트 재사용 - React.memo](#10-최적화2-컴포넌트-재사용---reactmemo)
 11.  [최적화3 컴포넌트 & 함수 재사용 - useCallback](#11-최적화3-컴포넌트--함수-재사용---usecallback)
+12.  [최적화4 - React.memo + useCallback](#12-최적화4---reactmemo--usecallback)
 
 <br>
 <br>
@@ -1688,3 +1689,62 @@ const onCreate = useCallback((author, content, emotion) => {
 
 <br>
 <br>
+
+## 12. 최적화4 - React.memo + useCallback
+
+### 12-1. 최적화 필요 부분
+
+- DiaryItem에서 `일기 하나`가 삭제될 경우, `모든 일기들이 리렌더링`되는 것을 알 수 있음
+- 일기의 개수가 많이 있을 경우, 성능에 좋지 않음
+
+<br>
+
+### 12-2. React.memo와 useCallback 적용
+
+```javascript
+// DiaryItem.js
+
+const DiaryItem = ({onEdit, onRemove, author, content, created_date, emotion, id}) => {
+    ...
+}
+
+export default React.memo(DiaryItem);
+```
+
+- `React.memo`로 `동일한 props`를 받을 경우, `리렌더 발생 방지`
+- 현재 DiaryItem 컴포넌트는 onEdit, onRemove, author, content, created_date, emotion, id를 props로 받고 있음
+- author, content, created_date, emotion, id는 동일한 값의 props를 받는다는 것을 React.memo를 통해 인식할 수 있음
+- 하지만, onEdit, onRemove의 경우, 함수이기 때문에 얕은 비교로 동일한 함수인지 아닌지 React.memo에서는 판별이 어려움
+- 따라서 `onEdit`과 `onRemove`에 `useCallback`으로 동일한 콜백함수를 보내는 처리를 해주어야 함
+
+<br>
+
+```javascript
+// App.js
+
+const onRemove = useCallback((targetId) => {
+    setData((data) => data.filter((it) => it.id !== targetId));
+}, []);
+
+const onEdit = useCallback((targetId, newContent) => {
+    setData((data) =>
+        data.map((it) =>
+            it.id === targetId ? { ...it, content: newContent } : it,
+        ),
+    );
+}, []);
+```
+
+- App 컴포넌트에서 onRemove 함수와 onEdit 함수에 useCallback 처리를 하고 dependency 배열은 빈배열로 처리
+- useCallback의 딜레마에 빠지지 않고 setState에서 최신의 데이터를 받게하기 위해 data를 인자로 받는 화살표 함수를 사용하여 함수형 업데이트를 진행
+- 이렇게 하면 DiaryItem 하나를 업데이트하여도 다른 DiaryItem들이 리렌더 되지 않음
+
+<br>
+
+![]()
+
+<React.memo와 useCallback을 활용하여 업데이트되는 DiaryItem만 리렌더>
+
+<br>
+<br>
+
