@@ -18,6 +18,7 @@
 10.  [최적화2 컴포넌트 재사용 - React.memo](#10-최적화2-컴포넌트-재사용---reactmemo)
 11.  [최적화3 컴포넌트 & 함수 재사용 - useCallback](#11-최적화3-컴포넌트--함수-재사용---usecallback)
 12.  [최적화4 - React.memo + useCallback](#12-최적화4---reactmemo--usecallback)
+13.  [복잡한 상태 관리 로직 분리하기 - useReducer](#13-복잡한-상태-관리-로직-분리하기---usereducer)
 
 <br>
 <br>
@@ -1741,10 +1742,198 @@ const onEdit = useCallback((targetId, newContent) => {
 
 <br>
 
-![]()
+![React.memo + useCallback](README_img/React_memo_useCallback.gif)
 
 <React.memo와 useCallback을 활용하여 업데이트되는 DiaryItem만 리렌더>
 
 <br>
 <br>
 
+## 13. 복잡한 상태 관리 로직 분리하기 - useReducer
+
+### 13-1. App 컴포넌트의 복잡함
+
+![App의 상태변화함수](README_img/React_setStates.png)
+
+- 현재 App 컴포넌트에는 useState로 인하여 `setState`인 상태 변화 처리함수가 `코드 상에 많이 포함`되어있음
+- 이 상태 변화 함수들은 모두 `data를 사용`하고 있기 때문에 App 컴포넌트에서 작성되었음
+- App 컴포넌트 코드가 복잡하고 길어짐
+- 상태 변화 함수가 많아질수록 더 복잡해짐
+
+<br>
+
+### 13-2. useReducer
+
+- React Hooks 중 하나
+- 컴포넌트에서 `상태 변화 로직`을 `분리`하여 따로 관리
+
+<br>
+
+<useReducer를 사용하지 않은 예시>
+
+```jsx
+const Counter = () => {
+    const [count, setCount] = useState(0);
+    
+    const add1 = () => {
+        setCount(count + 1);
+    };
+    
+    const add10 = () => {
+        setCount(count + 10);
+    };
+    
+    const add100 = () => {
+        setCount(count + 100);
+    };
+    
+    return (
+        <div>
+            {count}
+            <button onClick={add1}>add 1</button>
+            <button onClick={add10}>add 10</button>
+            <button onClick={add100}>add 100</button>
+        </div>
+    )
+};
+```
+
+<br>
+
+<useReducer를 사용하여 상태 변화 로직 분리 예시>
+
+```jsx
+// 상태 관리 로직 분리
+
+const reducer = (state, action) => {
+    switch (action.type) {
+        case 1:
+            return state + 1;
+        case 10:
+            return state + 10;
+        case 100:
+            return state + 100;
+        default:
+            return state;
+    }
+}
+```
+
+- 상태 변화 로직을 따로 분리하여 `switch-case 문법`처럼 활용
+- `state` : 현재 가장 최신의 state
+- `action` : dispatch 호출 시 전달한 인자인 `action 객체`
+
+<br>
+
+```jsx
+// useReducer 적용
+
+const Counter = () => {
+    const [count, dispatch] = useReducer(reducer, 1);
+    
+    return (
+        <div>
+            {count}
+            <button onClick={() => dispatch({ type: 1})}>add 1</button>
+            <button onClick={() => dispatch({ type: 10})}>add 10</button>
+            <button onClick={() => dispatch({ type: 100})}>add 100</button>
+        </div>
+    )
+};
+```
+
+- useState와 같이 `비구조화 할당` 사용
+- `count` : 0번 인덱스로 상태(state)
+- `dispatch` : 1번 인덱스로 상태 변화를 일으키는(`raise`) 함수
+- `useReducer()` : 상태 변화 관리 React Hook
+  - `reducer` : 0번 인덱스로 dispatch에서 일어난 `상태변화 action을 처리`해주는 함수
+  - `1` : 상태인 count의 `초기 값`
+- `dispatch({ type: 1 })` : dispatch 호출 시, 전달하는 {type: 1}과 같은 객체를 `action 객체`라고 함
+
+<br>
+
+### 13-3. App 컴포넌트에 useReducer 적용하기
+
+```jsx
+// App.js
+
+// reducer 함수 따로 생성
+
+const reducer = (state, action) => {
+    switch (action.type) {
+        // 처음 Mount 될 때,
+        case "INIT": {
+            return action.data; // action에 담긴 data 그대로 리턴
+        }
+        // 생성할 때,
+        case "CREATE": {
+            const created_date = new Date().getTime(); // 생성일자 따로 처리
+            const newItem = {
+                ...action.data,
+                created_date,
+            }; // 받은 action의 data에 생성일자 추가한 새로운 일기 newItem
+            return [newItem, ...state]; // 기존 일기 state에 newItem 추가하여 리턴
+        }
+        // 삭제할 때,
+        case "REMOVE": {
+            // 해당 id가 아닌 일기만 모아서 리턴
+            return state.filter((it) => it.id !== action.targetId);
+        }
+        // 수정할 때,
+        case "EDIT": {
+            // 해당 id인 일기를 찾아서 content만 action으로 받은 newContent로 수정하여 리턴
+            return state.map((it) =>
+                it.id === action.targetId ? { ...it, content: action.newContent } : it,
+            );
+        }
+        default:
+            return state;
+    }
+};
+```
+
+```jsx
+// App.js
+
+// useState 대신 useReducer 사용
+const [data, dispatch] = useReducer(reducer, []);
+
+// 기존의 setData를 이용하는 모든 상태 변화 함수 수정 -> dispatch 적용
+const getData = async () => {
+    const res = await fetch(
+        "https://jsonplaceholder.typicode.com/comments",
+    ).then((res) => res.json());
+    const initData = res.slice(0, 20).map((it) => {
+        return {
+            author: it.email,
+            content: it.body,
+            emotion: Math.floor(Math.random() * 5) + 1,
+            created_date: new Date().getTime(),
+            id: dataId.current++,
+        };
+    });
+
+    dispatch({ type: "INIT", data: initData });
+};
+
+const onCreate = useCallback((author, content, emotion) => {
+    dispatch({
+        type: "CREATE",
+        data: { author, content, emotion, id: dataId.current },
+    });
+    dataId.current += 1;
+}, []);
+
+const onRemove = useCallback((targetId) => {
+    dispatch({ type: "REMOVE", targetId });
+}, []);
+
+const onEdit = useCallback((targetId, newContent) => {
+    dispatch({ type: "EDIT", targetId, newContent });
+}, []);
+```
+
+- `dispatch`는 기존의 데이터를 어떠한 처리없이 받는 것이 가능하기에 기존의 useCallback 딜레마에서 함수형 업데이트 처리와 같은 `별도의 조치를 하지 않아도 괜찮음`
+
+<br>
+<br>
